@@ -324,31 +324,43 @@ a.fi-wi-stats-overview-stat:hover,
 /* ── Login ── */
 .fi-simple-layout {
     min-height: 100vh;
-    background-color: var(--tt-canvas) !important;
-    background-image: radial-gradient(800px 360px at 50% -120px, color-mix(in oklab, var(--tt-accent) 14%, transparent), transparent 70%) !important;
+    background: var(--tt-canvas) !important;
 }
 
 .fi-simple-main {
-    max-width: 26rem !important;
+    max-width: 24rem !important;
+    padding: 2.25rem 2rem !important;
     background: var(--tt-surface) !important;
-    border-radius: 18px !important;
+    border-radius: 16px !important;
     box-shadow: var(--tt-shadow-lg) !important;
-    outline: 1px solid var(--tt-line);
-    outline-offset: -1px;
-    --tw-ring-color: transparent !important;
+    --tw-ring-color: var(--tt-line) !important;
+}
+
+.fi-simple-page,
+.fi-simple-page-content {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    padding: 0 !important;
+}
+
+.fi-simple-header {
+    margin-bottom: 1.5rem !important;
 }
 
 .fi-simple-header-heading {
+    font-size: 1.375rem !important;
     letter-spacing: -0.025em;
 }
 
 .tt-admin-login-aside {
     margin-top: 1.25rem;
-    border-radius: var(--tt-radius-sm);
-    background: var(--tt-surface-muted);
-    outline: 1px solid var(--tt-line);
-    padding: 0.75rem 0.9rem;
-    font-size: 0.78rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--tt-line);
+    text-align: center;
+    font-size: 0.75rem;
     line-height: 1.5;
     color: var(--tt-ink-soft);
 }
