@@ -50,12 +50,36 @@ class User extends Authenticatable implements FilamentUser
             'latitude' => 'float',
             'longitude' => 'float',
             'last_active_at' => 'datetime',
+            'banned_at' => 'datetime',
+            'rating_avg' => 'float',
+            'rating_count' => 'integer',
         ];
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasAnyRole(['Super Admin', 'Admin', 'Moderator', 'Support']);
+        return $this->banned_at === null
+            && $this->hasAnyRole(['Super Admin', 'Admin', 'Moderator', 'Support']);
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->banned_at !== null;
+    }
+
+    public function reviewsReceived(): HasMany
+    {
+        return $this->hasMany(Review::class, 'reviewee_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(ListingPayment::class);
+    }
+
+    public function reportsFiled(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reporter_id');
     }
 
     public function city(): BelongsTo

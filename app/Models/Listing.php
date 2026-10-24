@@ -32,6 +32,8 @@ class Listing extends Model
         'currency',
         'condition',
         'status',
+        'moderation_note',
+        'moderated_at',
         'is_featured',
         'featured_until',
         'location_label',
@@ -64,6 +66,7 @@ class Listing extends Model
             'expires_at' => 'datetime',
             'sold_at' => 'datetime',
             'reserved_at' => 'datetime',
+            'moderated_at' => 'datetime',
         ];
     }
 
@@ -100,6 +103,21 @@ class Listing extends Model
     public function favourites(): HasMany
     {
         return $this->hasMany(Favourite::class);
+    }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class);
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
+    }
+
+    public function promotions(): HasMany
+    {
+        return $this->hasMany(ListingPromotion::class);
     }
 
     public function scopeActive(Builder $query): Builder

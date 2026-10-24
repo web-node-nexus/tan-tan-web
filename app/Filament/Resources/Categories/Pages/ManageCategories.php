@@ -10,10 +10,12 @@ class ManageCategories extends ManageRecords
 {
     protected static string $resource = CategoryResource::class;
 
+    protected ?string $subheading = 'Category tree shown on the app home and post-ad flow. Drag rows to reorder.';
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()->label('New category'),
         ];
     }
 }

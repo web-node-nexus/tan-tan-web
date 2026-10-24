@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use Filament\Actions\Action;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -12,8 +13,8 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -42,20 +43,32 @@ class AdminPanelProvider extends PanelProvider
                 'success' => Color::hex('#0F9D8A'),
                 'warning' => Color::hex('#F5A524'),
                 'danger' => Color::hex('#E5484D'),
-                'info' => Color::hex('#F2B01E'),
-                'gray' => Color::Stone,
+                'info' => Color::Indigo,
+                'gray' => Color::Zinc,
             ])
             ->darkMode(true)
-            ->defaultThemeMode(ThemeMode::Light)
+            ->defaultThemeMode(ThemeMode::System)
             ->sidebarCollapsibleOnDesktop()
-            ->sidebarWidth('18rem')
+            ->sidebarWidth('16.5rem')
+            ->collapsedSidebarWidth('4.5rem')
             ->maxContentWidth(Width::Full)
             ->spa()
+            ->unsavedChangesAlerts()
+            ->databaseTransactions()
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->globalSearchFieldKeyBindingSuffix()
             ->navigationGroups([
                 'Marketplace',
+                'People',
                 'Trust & safety',
                 'Monetization',
-                'System',
+                'Settings',
+            ])
+            ->userMenuItems([
+                Action::make('publicSite')
+                    ->label('View public site')
+                    ->icon(Heroicon::OutlinedGlobeAlt)
+                    ->url(fn (): string => url('/'), shouldOpenInNewTab: true),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -63,13 +76,6 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-                AccountWidget::class,
-            ])
-            ->renderHook(
-                PanelsRenderHook::SIDEBAR_NAV_START,
-                fn (): string => Blade::render('@include("filament.admin.hooks.sidebar-card")'),
-            )
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn (): string => Blade::render('@include("filament.admin.hooks.login-aside")'),

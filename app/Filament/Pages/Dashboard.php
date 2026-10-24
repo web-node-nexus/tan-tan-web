@@ -2,43 +2,78 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\AdminHeroWidget;
-use App\Filament\Widgets\MarketplaceStatsWidget;
-use App\Filament\Widgets\OpsPulseWidget;
-use App\Filament\Widgets\QuickActionsWidget;
-use App\Filament\Widgets\RoadmapWidget;
+use App\Filament\Support\Metrics;
+use App\Filament\Widgets\ActivityChartWidget;
+use App\Filament\Widgets\CategoryShareChartWidget;
+use App\Filament\Widgets\KpiStatsWidget;
+use App\Filament\Widgets\LatestReportsWidget;
+use App\Filament\Widgets\ListingStatusChartWidget;
+use App\Filament\Widgets\PendingListingsWidget;
+use App\Filament\Widgets\RevenueChartWidget;
+use App\Filament\Widgets\SystemHealthWidget;
+use App\Filament\Widgets\TopSellersWidget;
+use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Widgets\AccountWidget;
 
 class Dashboard extends BaseDashboard
 {
-    protected static string | \BackedEnum | null $navigationIcon = Heroicon::OutlinedHome;
+    use HasFiltersForm;
 
-    protected static ?string $navigationLabel = 'Home';
+    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 
-    protected static ?string $title = 'Ops dashboard';
+    protected static string|\BackedEnum|null $activeNavigationIcon = Heroicon::Squares2x2;
 
-    public function getColumns(): int | array
+    protected static ?string $navigationLabel = 'Dashboard';
+
+    protected static ?string $title = 'Dashboard';
+
+    public function getSubheading(): ?string
     {
-        return [
-            'md' => 2,
-            'xl' => 2,
-        ];
+        $hour = (int) now()->timezone('Asia/Kolkata')->format('G');
+        $greeting = match (true) {
+            $hour < 12 => 'Good morning',
+            $hour < 17 => 'Good afternoon',
+            default => 'Good evening',
+        };
+
+        return $greeting.', '.str(auth()->user()?->name ?? 'there')->before(' ').' — here’s how Tan Tan is doing.';
     }
 
-    /**
-     * @return array<class-string<\Filament\Widgets\Widget> | \Filament\Widgets\WidgetConfiguration>
-     */
+    public function filtersForm(Schema $schema): Schema
+    {
+        return $schema
+            ->columns(['md' => 3, 'xl' => 4])
+            ->components([
+                Select::make('period')
+                    ->hiddenLabel()
+                    ->options(Metrics::PERIODS)
+                    ->default('30')
+                    ->selectablePlaceholder(false)
+                    ->native(false)
+                    ->prefixIcon(Heroicon::OutlinedCalendarDays),
+            ]);
+    }
+
+    public function getColumns(): int|array
+    {
+        return ['default' => 1, 'md' => 6, 'xl' => 12];
+    }
+
     public function getWidgets(): array
     {
         return [
-            AdminHeroWidget::class,
-            MarketplaceStatsWidget::class,
-            QuickActionsWidget::class,
-            OpsPulseWidget::class,
-            RoadmapWidget::class,
-            AccountWidget::class,
+            KpiStatsWidget::class,
+            ActivityChartWidget::class,
+            CategoryShareChartWidget::class,
+            PendingListingsWidget::class,
+            LatestReportsWidget::class,
+            RevenueChartWidget::class,
+            ListingStatusChartWidget::class,
+            TopSellersWidget::class,
+            SystemHealthWidget::class,
         ];
     }
 }

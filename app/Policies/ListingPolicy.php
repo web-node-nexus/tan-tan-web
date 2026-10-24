@@ -4,9 +4,26 @@ namespace App\Policies;
 
 use App\Models\Listing;
 use App\Models\User;
+use Filament\Facades\Filament;
 
 class ListingPolicy
 {
+    /**
+     * Staff moderate any listing, but only inside the admin panel — API rules stay owner-only.
+     */
+    public function before(?User $user, string $ability): ?bool
+    {
+        if (! $user || ! Filament::isServing()) {
+            return null;
+        }
+
+        if (in_array($ability, ['viewAny', 'view'], true)) {
+            return $user->hasAnyRole(['Super Admin', 'Admin', 'Moderator', 'Support']) ?: null;
+        }
+
+        return $user->hasAnyRole(['Super Admin', 'Admin', 'Moderator']) ?: null;
+    }
+
     public function viewAny(?User $user): bool
     {
         return true;

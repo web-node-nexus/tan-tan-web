@@ -13,7 +13,24 @@ class Report extends Model
         'reason',
         'details',
         'status',
+        'admin_note',
+        'resolved_by',
+        'resolved_at',
     ];
+
+    public const STATUSES = ['open', 'reviewing', 'resolved', 'dismissed'];
+
+    protected function casts(): array
+    {
+        return [
+            'resolved_at' => 'datetime',
+        ];
+    }
+
+    public function resolver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
+    }
 
     public function reporter(): BelongsTo
     {

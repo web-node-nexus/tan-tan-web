@@ -18,6 +18,7 @@ return [
         'invalid_phone' => 'Enter a valid 10-digit Indian mobile number.',
         'invalid_otp' => 'Enter the OTP you received by SMS.',
         'otp_mismatch' => 'Incorrect or expired OTP. Request a new code and try again.',
+        'account_banned' => 'This account has been suspended. Contact support if you think this is a mistake.',
     ],
     'sellers' => [
         'show_ok' => 'Seller profile loaded.',

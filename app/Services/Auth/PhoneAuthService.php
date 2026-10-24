@@ -61,6 +61,10 @@ final class PhoneAuthService
         $user = User::query()->where('phone', $phone)->first();
         $isNew = false;
 
+        if ($user?->isBanned()) {
+            throw new RuntimeException(__('api.auth.account_banned'));
+        }
+
         if (! $user) {
             $isNew = true;
             $display = trim((string) $name);
