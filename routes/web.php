@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\Site\BrowseController;
 use App\Http\Controllers\Site\PageController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/browse', [BrowseController::class, 'index'])->name('site.browse');
+Route::get('/ads/{listing:slug}', [BrowseController::class, 'show'])->name('site.ads.show');
 
 Route::controller(PageController::class)->group(function (): void {
     Route::get('/', 'home')->name('site.home');

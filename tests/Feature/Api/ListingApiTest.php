@@ -39,6 +39,7 @@ class ListingApiTest extends TestCase
             'category_id' => $category->id,
             'city_id' => $city->id,
             'condition' => 'like_new',
+            'attributes' => ['brand' => 'xiaomi', 'storage' => '256', 'bill' => true],
         ])
             ->assertCreated()
             ->assertJsonPath('data.title', 'Redmi Note 12 Pro 256GB')

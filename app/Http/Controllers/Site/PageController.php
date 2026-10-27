@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
+use App\Models\Listing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,6 +15,7 @@ class PageController extends Controller
         return view('site.home', [
             'title' => 'Buy & sell near you',
             'description' => 'Tan Tan — India\'s friendly classifieds marketplace. Post free ads, chat safely, and discover deals nearby.',
+            'latest' => Listing::query()->active()->with(['category', 'city', 'images'])->latest('published_at')->limit(8)->get(),
         ]);
     }
 

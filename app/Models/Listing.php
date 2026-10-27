@@ -31,6 +31,7 @@ class Listing extends Model
         'is_negotiable',
         'currency',
         'condition',
+        'attributes',
         'status',
         'moderation_note',
         'moderated_at',
@@ -55,6 +56,7 @@ class Listing extends Model
             'posting_fee' => 'decimal:2',
             'previous_price' => 'decimal:2',
             'is_negotiable' => 'boolean',
+            'attributes' => 'array',
             'is_featured' => 'boolean',
             'featured_until' => 'datetime',
             'latitude' => 'float',
@@ -115,9 +117,25 @@ class Listing extends Model
         return $this->hasMany(Conversation::class);
     }
 
+    public function applications(): HasMany
+    {
+        return $this->hasMany(JobApplication::class);
+    }
+
     public function promotions(): HasMany
     {
         return $this->hasMany(ListingPromotion::class);
+    }
+
+    public function priceLabel(): string
+    {
+        $amount = '₹'.number_format((float) $this->price, 0);
+
+        return match ($this->category?->kind) {
+            'job' => $amount.' / month',
+            'service' => 'From '.$amount,
+            default => $amount,
+        };
     }
 
     public function scopeActive(Builder $query): Builder

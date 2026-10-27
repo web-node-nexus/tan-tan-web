@@ -50,6 +50,7 @@
 
             <nav class="hidden items-center gap-1 text-sm font-medium text-ink-500 xl:flex" aria-label="Primary">
                 @foreach ([
+                    ['Browse', 'site.browse'],
                     ['About', 'site.about'],
                     ['How it works', 'site.how'],
                     ['Categories', 'site.categories'],
@@ -89,6 +90,7 @@
         <div x-show="navOpen" x-cloak x-transition class="border-t border-line bg-surface/95 backdrop-blur-xl xl:hidden">
             <nav class="site-container flex flex-col gap-1 py-3 text-sm font-medium text-ink-700" aria-label="Mobile">
                 @foreach ([
+                    ['Browse', 'site.browse'],
                     ['About', 'site.about'],
                     ['How it works', 'site.how'],
                     ['Categories', 'site.categories'],
@@ -133,6 +135,7 @@
             <div class="lg:col-span-2">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">Explore</p>
                 <ul class="mt-4 space-y-2.5 text-sm text-ink-500">
+                    <li><a href="{{ route('site.browse') }}" class="transition duration-300 hover:text-primary-500">Browse ads</a></li>
                     <li><a href="{{ route('site.about') }}" class="transition duration-300 hover:text-primary-500">About</a></li>
                     <li><a href="{{ route('site.how') }}" class="transition duration-300 hover:text-primary-500">How it works</a></li>
                     <li><a href="{{ route('site.categories') }}" class="transition duration-300 hover:text-primary-500">Categories</a></li>

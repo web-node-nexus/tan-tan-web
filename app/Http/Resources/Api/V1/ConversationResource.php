@@ -27,7 +27,11 @@ class ConversationResource extends JsonResource
                 'price' => (float) $this->listing->price,
                 'cover_url' => $this->listing->images->first()?->url(),
                 'status' => $this->listing->status,
+                'kind' => $this->listing->category?->kind ?? 'product',
+                'is_negotiable' => (bool) $this->listing->is_negotiable,
+                'is_reserved' => $this->listing->reserved_at !== null,
             ]),
+            'is_buyer' => $user?->id === $this->buyer_id,
             'other_user' => $other ? [
                 'id' => $other->id,
                 'name' => $other->name,

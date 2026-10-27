@@ -63,6 +63,15 @@ class CategoryResource extends Resource
                             }),
                         TextInput::make('name_hi')->label('नाम (हिन्दी)')->required()->maxLength(80),
                         TextInput::make('slug')->required()->unique(ignoreRecord: true)->maxLength(80)->alphaDash(),
+                        Select::make('kind')
+                            ->label('Listing type')
+                            ->options([
+                                'product' => 'Product',
+                                'job' => 'Job',
+                                'service' => 'Local service',
+                            ])
+                            ->required()
+                            ->default('product'),
                         Select::make('parent_id')
                             ->label('Parent category')
                             ->relationship('parent', 'name_en', fn (Builder $query, ?Category $record) => $query->whereNull('parent_id')->when($record, fn ($query) => $query->whereKeyNot($record->id)))
@@ -104,6 +113,11 @@ class CategoryResource extends Resource
                     ->weight(FontWeight::SemiBold)
                     ->description(fn (Category $record): string => $record->name_hi),
                 TextColumn::make('parent.name_en')->label('Parent')->badge()->color('gray')->placeholder('Top level'),
+                TextColumn::make('kind')->badge()->color(fn (string $state): string => match ($state) {
+                    'job' => 'info',
+                    'service' => 'warning',
+                    default => 'gray',
+                }),
                 TextColumn::make('slug')->color('gray')->toggleable(),
                 TextColumn::make('icon')->badge()->color('gray')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('active_listings_count')->label('Live ads')->numeric()->sortable()->alignCenter(),

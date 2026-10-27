@@ -166,6 +166,25 @@
         </div>
     </section>
 
+    @if (($latest ?? collect())->isNotEmpty())
+        <section class="section">
+            <div class="site-container">
+                <div class="mb-4 flex items-end justify-between">
+                    <div>
+                        <p class="eyebrow">Live now</p>
+                        <h2 class="section-title mt-1">Fresh ads, jobs and services</h2>
+                    </div>
+                    <a href="{{ route('site.browse') }}" class="text-xs font-semibold text-primary-500 sm:text-sm">Browse all →</a>
+                </div>
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    @foreach ($latest as $listing)
+                        @include('partials.listing-card', ['listing' => $listing])
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
     <section class="section">
         <div class="site-container grid gap-3 lg:grid-cols-3">
             <a href="{{ route('site.buyers') }}" class="tile lg:col-span-1">

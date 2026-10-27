@@ -58,6 +58,7 @@ class ConversationController extends Controller
 
         $conversation->load([
             'listing.images',
+            'listing.category',
             'buyer:id,name',
             'seller:id,name',
             'messages' => fn ($q) => $q->latest('id')->limit(1),

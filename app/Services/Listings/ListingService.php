@@ -2,7 +2,11 @@
 
 namespace App\Services\Listings;
 
+use App\Models\Category;
 use App\Models\Listing;
+use App\Support\JobAttributes;
+use App\Support\ProductAttributes;
+use App\Support\ServiceAttributes;
 use App\Models\ListingImage;
 use App\Models\RecentlyViewed;
 use App\Models\SearchHistory;
@@ -42,7 +46,40 @@ final class ListingService
         }
 
         if (! empty($filters['category_id'])) {
-            $query->where('category_id', (int) $filters['category_id']);
+            $categoryId = (int) $filters['category_id'];
+            $ids = Category::query()->where('parent_id', $categoryId)->pluck('id')->push($categoryId)->all();
+            $query->whereIn('category_id', $ids);
+        }
+
+        if (! empty($filters['kind']) && in_array($filters['kind'], ['product', 'job', 'service'], true)) {
+            $query->whereHas('category', fn ($builder) => $builder->where('kind', $filters['kind']));
+        }
+
+        if (! empty($filters['work_mode']) && in_array($filters['work_mode'], ['office', 'remote', 'hybrid', 'home'], true)) {
+            $query->where('attributes->work_mode', $filters['work_mode']);
+        }
+
+        if (! empty($filters['experience']) && in_array($filters['experience'], ['fresher', '1_2', '3_5', '5_plus', 'experienced', '3_plus'], true)) {
+            $query->where('attributes->experience', $filters['experience']);
+        }
+
+        foreach (['same_day', 'brings_material', 'home_visit', 'available_today'] as $flag) {
+            if (empty($filters[$flag])) {
+                continue;
+            }
+            $query->where(function ($builder) use ($flag): void {
+                $builder->where('attributes->'.$flag, true)
+                    ->orWhere('attributes->'.$flag, 1)
+                    ->orWhere('attributes->'.$flag, 'true');
+            });
+        }
+
+        if (! empty($filters['move_type']) && in_array($filters['move_type'], ['local', 'intercity'], true)) {
+            $query->where('attributes->move_type', $filters['move_type']);
+        }
+
+        if (! empty($filters['verified'])) {
+            $query->whereHas('user', fn ($builder) => $builder->where('is_verified', true));
         }
 
         if (! empty($filters['city_id'])) {
@@ -109,6 +146,7 @@ final class ListingService
             $quota = app(ListingQuotaService::class);
             $slot = $quota->consumeCreditOrFree($user, $paymentId);
 
+            $category = Category::query()->find($data['category_id']);
             $listing = Listing::query()->create([
                 'user_id' => $user->id,
                 'category_id' => $data['category_id'],
@@ -117,8 +155,11 @@ final class ListingService
                 'description' => $data['description'],
                 'price' => $data['price'],
                 'posting_fee' => $slot['fee'],
-                'is_negotiable' => (bool) ($data['is_negotiable'] ?? true),
+                'is_negotiable' => filter_var($data['is_negotiable'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'condition' => $data['condition'] ?? 'used',
+                'attributes' => isset($data['attributes']) && is_array($data['attributes'])
+                    ? $this->knownAttributes($category, $data['attributes'])
+                    : null,
                 'status' => $data['status'] ?? 'active',
                 'location_label' => $data['location_label'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
@@ -145,6 +186,15 @@ final class ListingService
                 $listing->previous_price = $listing->price;
             }
 
+            if (array_key_exists('is_negotiable', $data)) {
+                $data['is_negotiable'] = filter_var($data['is_negotiable'], FILTER_VALIDATE_BOOLEAN);
+            }
+
+            if (isset($data['attributes']) && is_array($data['attributes'])) {
+                $category = Category::query()->find($data['category_id'] ?? $listing->category_id);
+                $data['attributes'] = $this->knownAttributes($category, $data['attributes']);
+            }
+
             $listing->fill(collect($data)->only([
                 'category_id',
                 'city_id',
@@ -153,6 +203,7 @@ final class ListingService
                 'price',
                 'is_negotiable',
                 'condition',
+                'attributes',
                 'status',
                 'location_label',
                 'latitude',
@@ -314,5 +365,18 @@ final class ListingService
         $listing->increment('favourites_count');
 
         return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function knownAttributes(?Category $category, array $attributes): array
+    {
+        return match ($category?->kind) {
+            'job' => JobAttributes::onlyKnown($category, $attributes),
+            'service' => ServiceAttributes::onlyKnown($category, $attributes),
+            default => ProductAttributes::onlyKnown($category, $attributes),
+        };
     }
 }

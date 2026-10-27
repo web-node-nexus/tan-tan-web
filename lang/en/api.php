@@ -61,6 +61,22 @@ return [
     'reports' => [
         'created' => 'Thanks — we received your report.',
     ],
+    'bookings' => [
+        'requested' => 'Visit request sent. The provider can accept or decline it.',
+        'already_booked' => 'You already requested this slot.',
+        'own_listing' => 'You cannot book your own service.',
+        'list_ok' => 'Visit requests loaded.',
+        'mine_ok' => 'Your visit requests loaded.',
+        'updated' => 'Visit request updated.',
+    ],
+    'applications' => [
+        'applied' => 'Application sent. The employer can see it in their applicant list.',
+        'already_applied' => 'You already applied to this job.',
+        'own_listing' => 'You cannot apply to your own job.',
+        'list_ok' => 'Applicants loaded.',
+        'mine_ok' => 'Your applications loaded.',
+        'updated' => 'Application updated.',
+    ],
     'chat' => [
         'list_ok' => 'Chats loaded.',
         'started' => 'Chat started.',

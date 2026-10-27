@@ -32,6 +32,7 @@ class ListingResource extends JsonResource
             'is_negotiable' => (bool) ($this->is_negotiable ?? true),
             'currency' => $this->currency,
             'condition' => $this->condition,
+            'attributes' => $this->attributes ?: null,
             'status' => $this->status,
             'is_featured' => $this->is_featured,
             'is_reserved' => $this->reserved_at !== null,
@@ -54,6 +55,7 @@ class ListingResource extends JsonResource
                 'id' => $this->category->id,
                 'name' => $this->category->localizedName(),
                 'slug' => $this->category->slug,
+                'kind' => $this->category->kind ?? 'product',
                 'tint' => $this->category->tint,
                 'icon' => $this->category->icon,
             ]),
@@ -74,6 +76,10 @@ class ListingResource extends JsonResource
             'featured_until' => $this->featured_until?->toIso8601String(),
             'is_favourited' => $isFavourited,
             'is_mine' => $user?->id === $this->user_id,
+            'has_applied' => $this->when(
+                $request->routeIs('api.v1.listings.show'),
+                fn () => $user ? $this->applications()->where('user_id', $user->id)->exists() : false,
+            ),
         ];
     }
 

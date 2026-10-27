@@ -65,6 +65,7 @@ final class ChatService
         return Conversation::query()
             ->with([
                 'listing.images',
+                'listing.category',
                 'buyer:id,name',
                 'seller:id,name',
                 'messages' => fn ($q) => $q->latest('id')->limit(1),
@@ -156,6 +157,14 @@ final class ChatService
             throw ValidationException::withMessages(['offer' => 'Only the buyer can make an offer.']);
         }
 
+        $listing = $conversation->listing()->with('category')->first();
+        if (! $listing || $listing->status !== 'active' || $listing->category?->kind !== 'product' || ! $listing->is_negotiable || $listing->reserved_at !== null) {
+            throw ValidationException::withMessages(['offer' => 'Offers are open only on an active negotiable product that is not reserved.']);
+        }
+        if ($amount > (float) $listing->price) {
+            throw ValidationException::withMessages(['amount' => 'Offer cannot be higher than the asking price.']);
+        }
+
         return DB::transaction(function () use ($conversation, $buyer, $amount): Offer {
             $message = $this->send(
                 $conversation,
@@ -187,6 +196,24 @@ final class ChatService
         }
 
         $offer->forceFill(['status' => $status])->save();
+
+        if ($status === 'accepted') {
+            $listing = $offer->listing;
+            if ($listing && $listing->status === 'active') {
+                if ((float) $offer->amount < (float) $listing->price) {
+                    $listing->previous_price = $listing->price;
+                }
+                $listing->price = $offer->amount;
+                $listing->reserved_at = now();
+                $listing->save();
+                Offer::query()
+                    ->where('listing_id', $listing->id)
+                    ->whereKeyNot($offer->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'rejected']);
+            }
+        }
+
         $this->send(
             $conversation,
             $seller,

@@ -8,12 +8,14 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\ConversationController;
 use App\Http\Controllers\Api\V1\FavouriteController;
+use App\Http\Controllers\Api\V1\JobApplicationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\ListingController;
 use App\Http\Controllers\Api\V1\PackageController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SavedSearchController;
+use App\Http\Controllers\Api\V1\ServiceBookingController;
 use App\Http\Controllers\Api\V1\SellerController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +49,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me/listings', [ListingController::class, 'mine'])->name('api.v1.listings.mine');
+        Route::get('/me/applications', [JobApplicationController::class, 'mine'])->name('api.v1.applications.mine');
+        Route::get('/me/bookings', [ServiceBookingController::class, 'mine'])->name('api.v1.bookings.mine');
         Route::get('/me/favourites', [FavouriteController::class, 'index'])->name('api.v1.favourites.index');
         Route::get('/me/recently-viewed', [ListingController::class, 'recentlyViewed'])
             ->name('api.v1.listings.recent');
@@ -68,6 +72,22 @@ Route::prefix('v1')->group(function (): void {
             ->name('api.v1.listings.insights');
         Route::post('/listings/{listing}/favourite', [ListingController::class, 'toggleFavourite'])
             ->name('api.v1.listings.favourite');
+        Route::post('/listings/{listing}/applications', [JobApplicationController::class, 'store'])
+            ->name('api.v1.applications.store');
+        Route::get('/listings/{listing}/applications', [JobApplicationController::class, 'index'])
+            ->name('api.v1.applications.index');
+        Route::patch('/applications/{application}', [JobApplicationController::class, 'update'])
+            ->name('api.v1.applications.update');
+        Route::post('/applications/{application}/respond', [JobApplicationController::class, 'respond'])
+            ->name('api.v1.applications.respond');
+        Route::post('/listings/{listing}/bookings', [ServiceBookingController::class, 'store'])
+            ->name('api.v1.bookings.store');
+        Route::get('/listings/{listing}/bookings', [ServiceBookingController::class, 'index'])
+            ->name('api.v1.bookings.index');
+        Route::patch('/bookings/{booking}', [ServiceBookingController::class, 'update'])
+            ->name('api.v1.bookings.update');
+        Route::post('/bookings/{booking}/cancel', [ServiceBookingController::class, 'cancel'])
+            ->name('api.v1.bookings.cancel');
         Route::post('/listings/{listing}/boost', [BoostController::class, 'store'])->name('api.v1.listings.boost');
 
         Route::post('/sellers/{user}/follow', [SellerController::class, 'follow'])->name('api.v1.sellers.follow');

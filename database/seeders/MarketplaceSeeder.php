@@ -35,18 +35,60 @@ class MarketplaceSeeder extends Seeder
         ));
 
         $categoryDefs = [
-            ['slug' => 'mobiles', 'name_en' => 'Mobiles', 'name_hi' => 'मोबाइल', 'icon' => 'DeviceMobile', 'tint' => '#E8F1FF', 'sort_order' => 1],
-            ['slug' => 'electronics', 'name_en' => 'Electronics', 'name_hi' => 'इलेक्ट्रॉनिक्स', 'icon' => 'Laptop', 'tint' => '#EAF8F4', 'sort_order' => 2],
-            ['slug' => 'vehicles', 'name_en' => 'Vehicles', 'name_hi' => 'वाहन', 'icon' => 'Motorcycle', 'tint' => '#FFF3E8', 'sort_order' => 3],
-            ['slug' => 'furniture', 'name_en' => 'Furniture', 'name_hi' => 'फर्नीचर', 'icon' => 'Armchair', 'tint' => '#F3EEFF', 'sort_order' => 4],
-            ['slug' => 'fashion', 'name_en' => 'Fashion', 'name_hi' => 'फैशन', 'icon' => 'TShirt', 'tint' => '#FFEAF1', 'sort_order' => 5],
-            ['slug' => 'properties', 'name_en' => 'Properties', 'name_hi' => 'प्रॉपर्टी', 'icon' => 'House', 'tint' => '#EEF8E8', 'sort_order' => 6],
+            ['slug' => 'mobiles', 'name_en' => 'Mobiles', 'name_hi' => 'मोबाइल', 'icon' => 'DeviceMobile', 'tint' => '#E8F1FF', 'sort_order' => 1, 'kind' => 'product'],
+            ['slug' => 'electronics', 'name_en' => 'Electronics', 'name_hi' => 'इलेक्ट्रॉनिक्स', 'icon' => 'Laptop', 'tint' => '#EAF8F4', 'sort_order' => 2, 'kind' => 'product'],
+            ['slug' => 'vehicles', 'name_en' => 'Vehicles', 'name_hi' => 'वाहन', 'icon' => 'Motorcycle', 'tint' => '#FFF3E8', 'sort_order' => 3, 'kind' => 'product'],
+            ['slug' => 'furniture', 'name_en' => 'Furniture', 'name_hi' => 'फर्नीचर', 'icon' => 'Armchair', 'tint' => '#F3EEFF', 'sort_order' => 4, 'kind' => 'product'],
+            ['slug' => 'fashion', 'name_en' => 'Fashion', 'name_hi' => 'फैशन', 'icon' => 'TShirt', 'tint' => '#FFEAF1', 'sort_order' => 5, 'kind' => 'product'],
+            ['slug' => 'properties', 'name_en' => 'Properties', 'name_hi' => 'प्रॉपर्टी', 'icon' => 'House', 'tint' => '#EEF8E8', 'sort_order' => 6, 'kind' => 'product'],
+            ['slug' => 'jobs', 'name_en' => 'Jobs', 'name_hi' => 'जॉब्स', 'icon' => 'Briefcase', 'tint' => '#E7F0FF', 'sort_order' => 7, 'kind' => 'job'],
+            ['slug' => 'services', 'name_en' => 'Local Services', 'name_hi' => 'लोकल सर्विसेज', 'icon' => 'Wrench', 'tint' => '#FFF4D6', 'sort_order' => 8, 'kind' => 'service'],
         ];
 
         $categories = collect($categoryDefs)->map(fn (array $row) => Category::query()->updateOrCreate(
             ['slug' => $row['slug']],
             $row + ['is_active' => true, 'parent_id' => null],
         ));
+
+        $childDefs = [
+            'jobs' => [
+                ['slug' => 'job-full-time', 'name_en' => 'Full-time', 'name_hi' => 'फुल-टाइम'],
+                ['slug' => 'job-part-time', 'name_en' => 'Part-time', 'name_hi' => 'पार्ट-टाइम'],
+                ['slug' => 'job-data-entry', 'name_en' => 'Data entry', 'name_hi' => 'डेटा एंट्री'],
+                ['slug' => 'job-sales', 'name_en' => 'Sales', 'name_hi' => 'सेल्स'],
+                ['slug' => 'job-marketing', 'name_en' => 'Marketing', 'name_hi' => 'मार्केटिंग'],
+                ['slug' => 'job-other', 'name_en' => 'Other local jobs', 'name_hi' => 'अन्य स्थानीय नौकरियाँ'],
+            ],
+            'services' => [
+                ['slug' => 'service-electrician', 'name_en' => 'Electrician', 'name_hi' => 'इलेक्ट्रीशियन'],
+                ['slug' => 'service-plumber', 'name_en' => 'Plumber', 'name_hi' => 'प्लंबर'],
+                ['slug' => 'service-carpenter', 'name_en' => 'Carpenter', 'name_hi' => 'कारपेंटर'],
+                ['slug' => 'service-packers-movers', 'name_en' => 'Packers & Movers', 'name_hi' => 'पैकर्स एंड मूवर्स'],
+                ['slug' => 'service-driver', 'name_en' => 'Driver', 'name_hi' => 'ड्राइवर'],
+                ['slug' => 'service-maid', 'name_en' => 'Maid', 'name_hi' => 'मेड'],
+                ['slug' => 'service-daily-needs', 'name_en' => 'Daily needs', 'name_hi' => 'अन्य डेली नीड्स'],
+            ],
+        ];
+
+        foreach ($childDefs as $parentSlug => $children) {
+            $parent = $categories->firstWhere('slug', $parentSlug);
+            if (! $parent) {
+                continue;
+            }
+            foreach ($children as $index => $child) {
+                $categories->push(Category::query()->updateOrCreate(
+                    ['slug' => $child['slug']],
+                    $child + [
+                        'parent_id' => $parent->id,
+                        'kind' => $parent->kind,
+                        'icon' => $parent->icon,
+                        'tint' => $parent->tint,
+                        'sort_order' => $index + 1,
+                        'is_active' => true,
+                    ],
+                ));
+            }
+        }
 
         $seller = User::query()->firstOrCreate(
             ['phone' => '9876543210'],
@@ -123,6 +165,26 @@ class MarketplaceSeeder extends Seeder
                 'category' => 'furniture',
                 'city' => 'New Delhi',
                 'image' => '/images/listings/sofa.jpg',
+                'featured' => false,
+            ],
+            [
+                'title' => 'Sales executive — full time, Lucknow',
+                'description' => 'Local retail brand hiring a full-time sales executive. Field visits in Lucknow, fixed salary plus incentive. No registration fee.',
+                'price' => 18000,
+                'condition' => 'new',
+                'category' => 'job-sales',
+                'city' => 'Lucknow',
+                'image' => '/images/site/hero-city.jpg',
+                'featured' => false,
+            ],
+            [
+                'title' => 'Home electrician — same day visit in Kanpur',
+                'description' => 'Fan, switchboard and wiring repairs. Visit charge is the starting price. Material extra. Share a photo of the fault in chat.',
+                'price' => 299,
+                'condition' => 'new',
+                'category' => 'service-electrician',
+                'city' => 'Kanpur',
+                'image' => '/images/site/hero-safe.jpg',
                 'featured' => false,
             ],
         ];
