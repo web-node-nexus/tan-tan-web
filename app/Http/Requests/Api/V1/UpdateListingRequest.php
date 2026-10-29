@@ -47,6 +47,7 @@ class UpdateListingRequest extends FormRequest
             'price' => ['sometimes', 'numeric', 'min:1', 'max:99999999.99'],
             'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
             'city_id' => ['nullable', 'integer', 'exists:cities,id'],
+            'area_id' => ['nullable', 'integer', 'exists:areas,id'],
             'condition' => ['sometimes', Rule::in(Listing::CONDITIONS)],
             'is_negotiable' => ['sometimes', 'boolean'],
             'location_label' => ['nullable', 'string', 'max:120'],

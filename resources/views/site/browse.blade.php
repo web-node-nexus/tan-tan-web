@@ -33,7 +33,7 @@
                 <label class="md:col-span-2">
                     <span class="text-xs font-semibold text-ink-500">Sort</span>
                     <select name="sort" class="mt-1 h-11 w-full rounded-md border border-line bg-surface px-3 text-sm text-ink-900">
-                        @foreach (['newest' => 'Newest', 'price_asc' => 'Price ↑', 'price_desc' => 'Price ↓', 'featured' => 'Featured'] as $value => $label)
+                        @foreach (['newest' => 'Newest', 'distance' => 'Nearest', 'price_asc' => 'Price ↑', 'price_desc' => 'Price ↓', 'featured' => 'Featured'] as $value => $label)
                             <option value="{{ $value }}" @selected($filters['sort'] === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
@@ -98,11 +98,31 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="flex flex-wrap items-center gap-2 md:col-span-12">
+                    <input type="hidden" name="lat" id="browse-lat" value="{{ $filters['lat'] }}">
+                    <input type="hidden" name="lng" id="browse-lng" value="{{ $filters['lng'] }}">
+                    <button type="button" id="browse-near" class="inline-flex h-11 items-center rounded-md border border-line bg-surface px-4 text-sm font-semibold text-ink-900">Near me</button>
+                    <select name="radius_km" id="browse-radius" class="h-11 rounded-md border border-line bg-surface px-3 text-sm text-ink-900">
+                        <option value="">Any distance</option>
+                        @foreach (['5' => '5 km', '15' => '15 km', '30' => '30 km', '50' => '50 km'] as $value => $label)
+                            <option value="{{ $value }}" @selected((string) $filters['radius_km'] === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <select name="area_id" class="h-11 min-w-48 rounded-md border border-line bg-surface px-3 text-sm text-ink-900">
+                        <option value="">Any area</option>
+                        @foreach ($areas as $area)
+                            <option value="{{ $area->id }}" @selected((int) $filters['area_id'] === $area->id)>{{ $area->name }}@if ($area->city) , {{ $area->city->name }}@endif</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="flex gap-2 md:col-span-12">
                     <button type="submit" class="inline-flex h-11 items-center rounded-md bg-primary-500 px-5 text-sm font-bold text-white">Show results</button>
                     <a href="{{ route('site.browse') }}" class="inline-flex h-11 items-center rounded-md border border-line bg-surface px-5 text-sm font-semibold text-ink-700">Reset</a>
                 </div>
             </form>
+            @if ($mapsKey !== '' && $pins->isNotEmpty())
+                <div id="ads-map" class="mt-6 overflow-hidden rounded-lg ring-1 ring-line" style="height: 320px"></div>
+            @endif
         </div>
     </section>
 
@@ -123,4 +143,36 @@
             @endif
         </div>
     </section>
+    <script>
+        document.getElementById('browse-near')?.addEventListener('click', () => {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition((pos) => {
+                document.getElementById('browse-lat').value = String(pos.coords.latitude);
+                document.getElementById('browse-lng').value = String(pos.coords.longitude);
+                const radius = document.getElementById('browse-radius');
+                if (radius && !radius.value) radius.value = '15';
+                const sort = document.querySelector('select[name="sort"]');
+                if (sort) sort.value = 'distance';
+                document.getElementById('browse-near').closest('form')?.submit();
+            });
+        });
+    </script>
+    @if ($mapsKey !== '' && $pins->isNotEmpty())
+        <script>
+            function initTanTanMap() {
+                const pins = @json($pins);
+                const map = new google.maps.Map(document.getElementById('ads-map'), {
+                    center: { lat: pins[0].lat, lng: pins[0].lng },
+                    zoom: 12,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                });
+                pins.forEach((pin) => {
+                    const marker = new google.maps.Marker({ position: { lat: pin.lat, lng: pin.lng }, map, title: pin.title });
+                    marker.addListener('click', () => { window.location.href = pin.url; });
+                });
+            }
+        </script>
+        <script async src="https://maps.googleapis.com/maps/api/js?key={{ $mapsKey }}&callback=initTanTanMap"></script>
+    @endif
 @endsection

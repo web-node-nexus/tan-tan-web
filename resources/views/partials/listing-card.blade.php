@@ -13,7 +13,7 @@
         <p class="line-clamp-2 text-sm font-medium text-ink-700">{{ $listing->title }}</p>
         <p class="text-xs text-ink-500">{{ $listing->city?->name ?? $listing->location_label }}</p>
         @if ($kind !== 'product')
-            <p class="text-[11px] font-bold uppercase tracking-wider text-primary-500">{{ $kind === 'job' ? 'Job' : 'Service' }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-primary-500">{{ $kind === 'job' ? 'Apply' : 'Book a visit' }}</p>
         @endif
     </div>
 </a>

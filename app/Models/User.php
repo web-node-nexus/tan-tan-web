@@ -25,6 +25,10 @@ use Spatie\Permission\Traits\HasRoles;
     'locale',
     'theme',
     'is_verified',
+    'account_type',
+    'business_name',
+    'gstin',
+    'kyc_status',
     'show_phone',
     'referral_code',
     'referred_by',
@@ -90,6 +94,11 @@ class User extends Authenticatable implements FilamentUser
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);
+    }
+
+    public function kycSubmission(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(KycSubmission::class);
     }
 
     public function favourites(): HasMany

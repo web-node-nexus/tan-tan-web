@@ -7,6 +7,7 @@ use App\Http\Resources\Api\V1\ServiceBookingResource;
 use App\Models\Listing;
 use App\Models\ServiceBooking;
 use App\Support\ApiResponse;
+use App\Services\Search\SavedSearchAlertService;
 use App\Support\BookingDetails;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -105,7 +106,17 @@ class ServiceBookingController extends Controller
         }
 
         $booking->update($payload);
-        $booking->load('user:id,name');
+        $booking->load(['user:id,name', 'listing']);
+        if ($booking->listing) {
+            app(SavedSearchAlertService::class)->notifyStatus(
+                $booking->user_id,
+                $booking->listing,
+                'booking_status',
+                'booking:'.$booking->id.':'.$booking->status,
+                'Booking update',
+                $booking->listing->title.' is now '.$booking->status.'.',
+            );
+        }
 
         return ApiResponse::success(
             (new ServiceBookingResource($booking))->resolve(),

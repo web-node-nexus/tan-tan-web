@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             MarketplaceSeeder::class,
+            AreaSeeder::class,
+            CatalogSeeder::class,
             AdvancedMarketplaceSeeder::class,
         ]);
     }

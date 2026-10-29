@@ -36,6 +36,9 @@ class SiteBrowseTest extends TestCase
             '/categories',
             '/for-sellers',
             '/for-buyers',
+            '/sell',
+            '/trust',
+            '/work',
         ] as $path) {
             $this->get($path)->assertOk();
         }
@@ -91,7 +94,8 @@ class SiteBrowseTest extends TestCase
         $this->get('/ads/'.$job->slug)
             ->assertOk()
             ->assertSee('Store helper job')
-            ->assertSee('Apply in the app')
+            ->assertSee('Application')
+            ->assertSee('Applied')
             ->assertSee('Demo Employer');
 
         $this->get('/')

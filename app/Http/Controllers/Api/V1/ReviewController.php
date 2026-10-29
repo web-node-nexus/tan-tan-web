@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Listing;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\Trust\ReviewEligibility;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ReviewController extends Controller
 {
@@ -44,18 +46,21 @@ class ReviewController extends Controller
     {
         $data = $request->validate([
             'reviewee_id' => ['required', 'integer', 'exists:users,id', 'different:'.$request->user()->id],
-            'listing_id' => ['nullable', 'integer', 'exists:listings,id'],
+            'listing_id' => ['required', 'integer', 'exists:listings,id'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        if (! empty($data['listing_id'])) {
-            $listing = Listing::query()->findOrFail($data['listing_id']);
-            abort_unless(
-                (int) $data['reviewee_id'] === (int) $listing->user_id,
-                422,
-                'Listing does not match the seller being reviewed.',
-            );
+        $listing = Listing::query()->findOrFail($data['listing_id']);
+        if ((int) $data['reviewee_id'] !== (int) $listing->user_id) {
+            throw ValidationException::withMessages([
+                'listing_id' => __('api.reviews.seller_mismatch'),
+            ]);
+        }
+        if (! app(ReviewEligibility::class)->allowed($request->user(), $listing)) {
+            throw ValidationException::withMessages([
+                'listing_id' => __('api.reviews.deal_required'),
+            ]);
         }
 
         $review = DB::transaction(function () use ($request, $data): Review {

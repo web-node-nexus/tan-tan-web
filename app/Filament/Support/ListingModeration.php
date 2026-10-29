@@ -4,6 +4,7 @@ namespace App\Filament\Support;
 
 use App\Models\Listing;
 use App\Models\ListingPromotion;
+use App\Services\Search\SavedSearchAlertService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Textarea;
@@ -196,13 +197,24 @@ class ListingModeration
 
     public static function applyStatus(Listing $listing, string $status, ?string $note = null): void
     {
+        $wasActive = $listing->status === 'active';
+
         $listing->forceFill([
             'status' => $status,
             'moderation_note' => $note,
             'moderated_at' => now(),
             'published_at' => $status === 'active' ? ($listing->published_at ?? now()) : $listing->published_at,
+            'expires_at' => $status === 'active' ? ($listing->expires_at ?? now()->addDays((int) config('services.tantan.ad_expiry_days', 30))) : $listing->expires_at,
             'is_featured' => $status === 'active' ? $listing->is_featured : false,
         ])->save();
+
+        if ($status === 'active' && ! $wasActive) {
+            try {
+                app(SavedSearchAlertService::class)->notifyMatches($listing->fresh());
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
     }
 
     public static function applyFeature(Listing $listing, int $days): void

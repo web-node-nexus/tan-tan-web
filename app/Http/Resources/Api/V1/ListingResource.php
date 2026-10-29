@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Models\Listing;
+use App\Services\Trust\ReviewEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,9 +37,11 @@ class ListingResource extends JsonResource
             'status' => $this->status,
             'is_featured' => $this->is_featured,
             'is_reserved' => $this->reserved_at !== null,
-            'location_label' => $this->location_label ?? $this->city?->name,
+            'location_label' => $this->location_label ?? $this->area?->name ?? $this->city?->name,
+            'video_url' => $this->videoUrl(),
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
+            'distance_km' => isset($this->distance_km) ? round((float) $this->distance_km, 1) : null,
             'views_count' => $this->views_count,
             'favourites_count' => (int) ($this->favourites_count ?? 0),
             'chats_count' => (int) ($this->chats_count ?? 0),
@@ -64,10 +67,17 @@ class ListingResource extends JsonResource
                 'name' => $this->city->name,
                 'state' => $this->city->state?->name,
             ] : null),
+            'area' => $this->whenLoaded('area', fn () => $this->area ? [
+                'id' => $this->area->id,
+                'name' => $this->area->name,
+            ] : null),
             'seller' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'is_verified' => (bool) $this->user->is_verified,
+                'phone_verified' => $this->user->phone_verified_at !== null,
+                'account_type' => $this->user->account_type ?: 'personal',
+                'business_name' => $this->user->business_name,
                 'phone' => $this->user->show_phone ? $this->user->phone : null,
                 'member_since' => $this->user->created_at?->toDateString(),
                 'rating_avg' => (float) ($this->user->rating_avg ?? 0),
@@ -76,6 +86,38 @@ class ListingResource extends JsonResource
             'featured_until' => $this->featured_until?->toIso8601String(),
             'is_favourited' => $isFavourited,
             'is_mine' => $user?->id === $this->user_id,
+            'can_review' => $this->when(
+                $request->routeIs('api.v1.listings.show'),
+                function () use ($request): bool {
+                    $viewer = $request->user('sanctum') ?? auth('sanctum')->user();
+
+                    return $viewer instanceof \App\Models\User
+                        && $this->resource instanceof Listing
+                        && app(ReviewEligibility::class)->allowed($viewer, $this->resource);
+                },
+            ),
+            'workflow' => $this->when(
+                $request->routeIs('api.v1.listings.show'),
+                function () use ($request): array {
+                    $kind = $this->category?->kind ?? 'product';
+                    $viewer = $request->user('sanctum') ?? auth('sanctum')->user();
+                    $status = null;
+                    $steps = [];
+                    if ($kind === 'job') {
+                        $steps = ['applied', 'shortlisted', 'interview', 'hired'];
+                        $status = $viewer ? \App\Models\JobApplication::query()->where('listing_id', $this->id)->where('user_id', $viewer->id)->value('status') : null;
+                    } elseif ($kind === 'service') {
+                        $steps = ['requested', 'accepted', 'done'];
+                        $status = $viewer ? \App\Models\ServiceBooking::query()->where('listing_id', $this->id)->where('user_id', $viewer->id)->latest('id')->value('status') : null;
+                    }
+
+                    return [
+                        'kind' => $kind,
+                        'steps' => $steps,
+                        'status' => $status,
+                    ];
+                },
+            ),
             'has_applied' => $this->when(
                 $request->routeIs('api.v1.listings.show'),
                 fn () => $user ? $this->applications()->where('user_id', $user->id)->exists() : false,
@@ -93,6 +135,18 @@ class ListingResource extends JsonResource
 
         $path = $this->coverPath();
         if (! $path) {
+            return null;
+        }
+
+        $image = new \App\Models\ListingImage(['path' => $path]);
+
+        return $image->url();
+    }
+
+    private function videoUrl(): ?string
+    {
+        $path = $this->video_path;
+        if (! is_string($path) || $path === '') {
             return null;
         }
 

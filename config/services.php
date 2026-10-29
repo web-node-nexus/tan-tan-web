@@ -41,10 +41,15 @@ return [
         'base_url' => env('TWOFACTOR_BASE_URL', 'https://2factor.in/API/V1'),
     ],
 
+    'google' => [
+        'maps_key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
     'tantan' => [
         'ad_expiry_days' => (int) env('TANTAN_AD_EXPIRY_DAYS', 30),
         'free_ad_limit' => (int) env('TANTAN_FREE_AD_LIMIT', 2),
         'extra_ad_fee' => (float) env('TANTAN_EXTRA_AD_FEE', 9),
+        'report_hide_threshold' => (int) env('TANTAN_AUTO_HIDE_REPORT_COUNT', 5),
     ],
 
 ];

@@ -34,4 +34,9 @@ class City extends Model
     {
         return $this->hasMany(Listing::class);
     }
+
+    public function areas(): HasMany
+    {
+        return $this->hasMany(Area::class);
+    }
 }

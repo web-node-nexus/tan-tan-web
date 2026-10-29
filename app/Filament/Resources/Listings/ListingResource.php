@@ -146,6 +146,7 @@ class ListingResource extends Resource
                         ->collapsible()
                         ->schema([
                             Select::make('city_id')->label('City')->relationship('city', 'name')->searchable()->preload(),
+                            Select::make('area_id')->label('Area')->relationship('area', 'name')->searchable()->preload(),
                             TextInput::make('location_label')->label('Locality')->maxLength(120),
                             TextInput::make('latitude')->numeric(),
                             TextInput::make('longitude')->numeric(),

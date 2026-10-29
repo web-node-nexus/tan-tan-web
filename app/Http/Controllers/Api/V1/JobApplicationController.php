@@ -7,6 +7,7 @@ use App\Http\Resources\Api\V1\JobApplicationResource;
 use App\Models\JobApplication;
 use App\Models\Listing;
 use App\Services\Chat\ChatService;
+use App\Services\Search\SavedSearchAlertService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -114,7 +115,17 @@ class JobApplicationController extends Controller
         }
 
         $application->update($payload);
-        $application->load('user:id,name');
+        $application->load(['user:id,name', 'listing']);
+        if ($application->listing) {
+            app(SavedSearchAlertService::class)->notifyStatus(
+                $application->user_id,
+                $application->listing,
+                'job_status',
+                'job:'.$application->id.':'.$application->status,
+                'Application update',
+                $application->listing->title.' is now '.$application->status.'.',
+            );
+        }
 
         return ApiResponse::success(
             (new JobApplicationResource($application))->resolve(),

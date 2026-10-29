@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
+use App\Models\Area;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Listing;
@@ -34,15 +35,33 @@ class BrowseController extends Controller
             'available_today' => $request->boolean('available_today') ? '1' : '',
             'move_type' => $request->string('move_type')->toString(),
             'verified' => $request->boolean('verified') ? '1' : '',
+            'lat' => $request->input('lat'),
+            'lng' => $request->input('lng'),
+            'radius_km' => $request->input('radius_km'),
+            'area_id' => $request->integer('area_id') ?: null,
         ];
+
+        $listings = $this->listings->search(array_filter($filters, fn ($value) => $value !== null && $value !== ''), 12);
+        $pins = $listings->getCollection()
+            ->filter(fn (Listing $listing): bool => $listing->latitude !== null && $listing->longitude !== null)
+            ->map(fn (Listing $listing): array => [
+                'lat' => (float) $listing->latitude,
+                'lng' => (float) $listing->longitude,
+                'title' => $listing->title,
+                'url' => route('site.ads.show', $listing),
+            ])
+            ->values();
 
         return view('site.browse', [
             'title' => 'Browse ads',
             'description' => 'Search products, jobs and local services on Tan Tan. Filter by city, category and price.',
-            'listings' => $this->listings->search(array_filter($filters, fn ($value) => $value !== null && $value !== ''), 12),
+            'listings' => $listings,
             'categories' => Category::query()->whereNull('parent_id')->where('is_active', true)->orderBy('sort_order')->get(),
             'cities' => City::query()->where('is_active', true)->orderBy('name')->get(),
+            'areas' => Area::query()->with('city:id,name')->orderBy('name')->limit(80)->get(),
             'filters' => $filters,
+            'pins' => $pins,
+            'mapsKey' => (string) config('services.google.maps_key'),
         ]);
     }
 

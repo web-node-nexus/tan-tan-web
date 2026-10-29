@@ -45,6 +45,7 @@ class StoreListingRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:1', 'max:99999999.99'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'city_id' => ['nullable', 'integer', 'exists:cities,id'],
+            'area_id' => ['nullable', 'integer', 'exists:areas,id'],
             'condition' => ['nullable', Rule::in(Listing::CONDITIONS)],
             'is_negotiable' => ['sometimes', 'boolean'],
             'location_label' => ['nullable', 'string', 'max:120'],
@@ -52,6 +53,7 @@ class StoreListingRequest extends FormRequest
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'status' => ['nullable', Rule::in(['draft', 'active', 'pending'])],
             'payment_id' => ['nullable', 'integer', 'exists:listing_payments,id'],
+            'video' => ['nullable', 'file', 'mimetypes:video/mp4,video/quicktime,video/webm', 'max:30720'],
             'images' => ['nullable', 'array', 'max:8'],
             'images.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ];

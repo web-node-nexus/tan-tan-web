@@ -43,7 +43,7 @@ class ListingApiTest extends TestCase
         ])
             ->assertCreated()
             ->assertJsonPath('data.title', 'Redmi Note 12 Pro 256GB')
-            ->assertJsonPath('data.status', 'active');
+            ->assertJsonPath('data.status', 'pending');
 
         $this->assertDatabaseHas('listings', [
             'user_id' => $user->id,

@@ -47,12 +47,12 @@ class ListingController extends Controller
     {
         $this->authorize('view', $listing);
 
-        $listing->load(['category', 'city.state', 'images', 'user', 'favourites']);
+        $listing->load(['category', 'city.state', 'area', 'images', 'user', 'favourites']);
         $viewer = $request->user('sanctum') ?? auth('sanctum')->user();
         $this->listings->incrementViews($listing, $viewer);
 
         return ApiResponse::success(
-            (new ListingResource($listing->fresh(['category', 'city.state', 'images', 'user', 'favourites'])))->resolve(),
+            (new ListingResource($listing->fresh(['category', 'city.state', 'area', 'images', 'user', 'favourites'])))->resolve(),
             __('api.listings.show_ok'),
         );
     }
@@ -70,6 +70,7 @@ class ListingController extends Controller
             $validated,
             $this->uploadedImages($request),
             $paymentId,
+            $request->file('video'),
         );
 
         return ApiResponse::success(

@@ -122,6 +122,18 @@ class UserResource extends Resource
                         ->icon(Heroicon::OutlinedCheckBadge)
                         ->schema([
                             Toggle::make('is_verified')->label('Verified seller badge'),
+                            Select::make('kyc_status')->options([
+                                'none' => 'None',
+                                'pending' => 'Pending',
+                                'approved' => 'Approved',
+                                'rejected' => 'Rejected',
+                            ])->default('none')->native(false),
+                            Select::make('account_type')->options([
+                                'personal' => 'Personal',
+                                'business' => 'Dealer / business',
+                            ])->default('personal')->native(false),
+                            TextInput::make('business_name')->maxLength(80),
+                            TextInput::make('gstin')->maxLength(15),
                         ]),
                     Section::make('Admin access')
                         ->icon(Heroicon::OutlinedKey)

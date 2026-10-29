@@ -20,6 +20,14 @@ return [
         'otp_mismatch' => 'Incorrect or expired OTP. Request a new code and try again.',
         'account_banned' => 'This account has been suspended. Contact support if you think this is a mistake.',
     ],
+    'trust' => [
+        'kyc_ok' => 'KYC status loaded.',
+        'kyc_submitted' => 'Documents submitted for review.',
+        'business_saved' => 'Account type saved.',
+        'fraud_blocked' => 'This ad looks like a payment or OTP scam. Rewrite it without asking for fees, OTPs or gift cards.',
+        'document_used' => 'This ID is already linked to another account.',
+        'document_invalid' => 'Enter a valid Aadhaar, PAN or driving licence number.',
+    ],
     'sellers' => [
         'show_ok' => 'Seller profile loaded.',
         'followed' => 'Following seller.',
@@ -31,6 +39,14 @@ return [
     ],
     'cities' => [
         'list_ok' => 'Cities loaded.',
+    ],
+    'areas' => [
+        'list_ok' => 'Areas loaded.',
+    ],
+    'places' => [
+        'suggest_ok' => 'Places loaded.',
+        'reverse_ok' => 'Location found.',
+        'unavailable' => 'Could not read that location.',
     ],
     'listings' => [
         'list_ok' => 'Listings loaded.',
@@ -60,6 +76,7 @@ return [
     ],
     'reports' => [
         'created' => 'Thanks — we received your report.',
+        'duplicate' => 'You already reported this ad.',
     ],
     'bookings' => [
         'requested' => 'Visit request sent. The provider can accept or decline it.',
@@ -95,11 +112,21 @@ return [
     'reviews' => [
         'list_ok' => 'Reviews loaded.',
         'created' => 'Review saved.',
+        'deal_required' => 'You can rate this seller only after a completed deal or a two-way chat on a sold ad.',
+        'seller_mismatch' => 'This ad does not belong to that seller.',
     ],
     'saved_searches' => [
         'list_ok' => 'Saved searches loaded.',
         'created' => 'Search saved.',
         'deleted' => 'Saved search removed.',
+    ],
+    'catalog' => [
+        'list_ok' => 'Catalog loaded.',
+    ],
+    'alerts' => [
+        'list_ok' => 'Alerts loaded.',
+        'read_ok' => 'Alerts marked read.',
+        'token_ok' => 'Push token saved.',
     ],
     'boosts' => [
         'applied' => 'Boost applied — your ad is featured.',

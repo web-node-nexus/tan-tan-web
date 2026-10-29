@@ -11,6 +11,7 @@ use App\Models\Message;
 use App\Models\Offer;
 use App\Models\User;
 use App\Models\UserBlock;
+use App\Services\Search\SavedSearchAlertService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -200,12 +201,17 @@ final class ChatService
         if ($status === 'accepted') {
             $listing = $offer->listing;
             if ($listing && $listing->status === 'active') {
-                if ((float) $offer->amount < (float) $listing->price) {
+                $from = (float) $listing->price;
+                $to = (float) $offer->amount;
+                if ($to < $from) {
                     $listing->previous_price = $listing->price;
                 }
                 $listing->price = $offer->amount;
                 $listing->reserved_at = now();
                 $listing->save();
+                if ($to < $from) {
+                    app(SavedSearchAlertService::class)->notifyPriceDrop($listing->fresh(), $from, $to);
+                }
                 Offer::query()
                     ->where('listing_id', $listing->id)
                     ->whereKeyNot($offer->id)

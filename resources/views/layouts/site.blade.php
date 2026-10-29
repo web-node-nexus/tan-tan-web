@@ -51,10 +51,13 @@
             <nav class="hidden items-center gap-1 text-sm font-medium text-ink-500 xl:flex" aria-label="Primary">
                 @foreach ([
                     ['Browse', 'site.browse'],
+                    ['Post ad', 'site.sell'],
                     ['About', 'site.about'],
                     ['How it works', 'site.how'],
                     ['Categories', 'site.categories'],
                     ['Safety', 'site.safety'],
+                    ['Trust', 'site.trust'],
+                    ['Work', 'site.work'],
                     ['Packages', 'site.packages'],
                     ['FAQ', 'site.faq'],
                 ] as [$label, $route])
@@ -91,12 +94,15 @@
             <nav class="site-container flex flex-col gap-1 py-3 text-sm font-medium text-ink-700" aria-label="Mobile">
                 @foreach ([
                     ['Browse', 'site.browse'],
+                    ['Post ad', 'site.sell'],
                     ['About', 'site.about'],
                     ['How it works', 'site.how'],
                     ['Categories', 'site.categories'],
                     ['For buyers', 'site.buyers'],
                     ['For sellers', 'site.sellers'],
                     ['Safety', 'site.safety'],
+                    ['Trust', 'site.trust'],
+                    ['Work', 'site.work'],
                     ['Packages', 'site.packages'],
                     ['FAQ', 'site.faq'],
                     ['Contact', 'site.contact'],

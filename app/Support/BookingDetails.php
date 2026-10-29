@@ -69,6 +69,47 @@ final class BookingDetails
     }
 
     /**
+     * @return list<array{key: string, type: string, options?: list<string>}>
+     */
+    public static function form(?Category $category): array
+    {
+        return match ($category?->slug) {
+            'service-electrician' => [
+                ['key' => 'issue', 'type' => 'select', 'options' => ['wiring', 'fan', 'inverter', 'switchboard', 'appliance']],
+                ['key' => 'urgent', 'type' => 'checkbox'],
+            ],
+            'service-plumber' => [
+                ['key' => 'issue', 'type' => 'select', 'options' => ['leak', 'tap', 'drain', 'bathroom', 'tank']],
+                ['key' => 'water_off', 'type' => 'checkbox'],
+            ],
+            'service-carpenter' => [
+                ['key' => 'job', 'type' => 'select', 'options' => ['repair', 'new_furniture', 'doors', 'modular']],
+                ['key' => 'rooms', 'type' => 'number'],
+            ],
+            'service-packers-movers' => [
+                ['key' => 'from_area', 'type' => 'text'],
+                ['key' => 'to_area', 'type' => 'text'],
+                ['key' => 'floors', 'type' => 'number'],
+                ['key' => 'lift', 'type' => 'checkbox'],
+            ],
+            'service-driver' => [
+                ['key' => 'pickup', 'type' => 'text'],
+                ['key' => 'drop', 'type' => 'text'],
+                ['key' => 'trip', 'type' => 'select', 'options' => ['local', 'outstation']],
+            ],
+            'service-maid' => [
+                ['key' => 'duty', 'type' => 'select', 'options' => ['cleaning', 'cooking', 'babysitting', 'elderly']],
+                ['key' => 'frequency', 'type' => 'select', 'options' => ['once', 'weekly', 'monthly']],
+            ],
+            'service-daily-needs' => [
+                ['key' => 'need', 'type' => 'select', 'options' => ['laundry', 'grocery', 'tuition', 'pest_control', 'other']],
+                ['key' => 'today', 'type' => 'checkbox'],
+            ],
+            default => [],
+        };
+    }
+
+    /**
      * @return array<string, array<string, mixed>>
      */
     public static function examples(): array

@@ -21,6 +21,7 @@ class Listing extends Model
         'user_id',
         'category_id',
         'city_id',
+        'area_id',
         'title',
         'slug',
         'description',
@@ -38,6 +39,7 @@ class Listing extends Model
         'is_featured',
         'featured_until',
         'location_label',
+        'video_path',
         'latitude',
         'longitude',
         'views_count',
@@ -95,6 +97,11 @@ class Listing extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function area(): BelongsTo
+    {
+        return $this->belongsTo(Area::class);
     }
 
     public function images(): HasMany

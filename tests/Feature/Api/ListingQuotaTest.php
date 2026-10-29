@@ -99,6 +99,7 @@ class ListingQuotaTest extends TestCase
             'category_id' => $categoryId,
             'city_id' => $cityId,
             'condition' => 'used',
+            'attributes' => ['brand' => 'xiaomi', 'storage' => '128', 'bill' => true],
         ];
     }
 }

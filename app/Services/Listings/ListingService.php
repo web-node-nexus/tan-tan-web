@@ -2,10 +2,17 @@
 
 namespace App\Services\Listings;
 
+use App\Models\Area;
 use App\Models\Category;
+use App\Models\City;
 use App\Models\Listing;
+use App\Models\FraudFlag;
+use App\Services\Search\SavedSearchAlertService;
+use App\Services\Trust\FraudCheckService;
+use App\Support\ImageCompressor;
 use App\Support\JobAttributes;
 use App\Support\ProductAttributes;
+use App\Support\SearchText;
 use App\Support\ServiceAttributes;
 use App\Models\ListingImage;
 use App\Models\RecentlyViewed;
@@ -24,16 +31,44 @@ final class ListingService
     public function search(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         $query = Listing::query()
-            ->with(['category', 'city.state', 'images', 'user:id,name,is_verified,phone_verified_at,rating_avg,rating_count,show_phone,phone,created_at'])
+            ->with(['category', 'city.state', 'area', 'images', 'user:id,name,is_verified,phone_verified_at,rating_avg,rating_count,show_phone,phone,created_at'])
             ->active()
             ->latest('published_at');
 
+        $textGroups = [];
         if (! empty($filters['q'])) {
-            $q = trim((string) $filters['q']);
-            $like = '%'.$q.'%';
-            $query->where(function ($builder) use ($like): void {
-                $builder->where('title', 'like', $like)
-                    ->orWhere('description', 'like', $like);
+            $textGroups = app(SearchText::class)->groups((string) $filters['q']);
+            if ($textGroups !== []) {
+                $query->where(function ($builder) use ($textGroups): void {
+                    foreach ($textGroups as $forms) {
+                        $builder->where(function ($inner) use ($forms): void {
+                            foreach ($forms as $form) {
+                                $like = '%'.$this->escapeLike($form).'%';
+                                $inner->orWhere('title', 'like', $like)
+                                    ->orWhere('description', 'like', $like)
+                                    ->orWhere('location_label', 'like', $like)
+                                    ->orWhere('attributes->brand', 'like', $like)
+                                    ->orWhere('attributes->model', 'like', $like)
+                                    ->orWhere('attributes->variant', 'like', $like);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        foreach (['brand', 'model', 'fuel', 'bhk', 'purpose', 'furnishing', 'transmission'] as $attribute) {
+            if (empty($filters[$attribute])) {
+                continue;
+            }
+            $query->whereRaw('lower('.$this->jsonText($attribute).') = ?', [mb_strtolower((string) $filters[$attribute])]);
+        }
+
+        if (! empty($filters['variant'])) {
+            $variant = mb_strtolower((string) $filters['variant']);
+            $query->where(function ($builder) use ($variant): void {
+                $builder->whereRaw('lower('.$this->jsonText('variant').') = ?', [$variant])
+                    ->orWhereRaw('lower('.$this->jsonText('storage').') = ?', [$variant]);
             });
         }
 
@@ -86,6 +121,24 @@ final class ListingService
             $query->where('city_id', (int) $filters['city_id']);
         }
 
+        if (! empty($filters['area_id'])) {
+            $query->where('area_id', (int) $filters['area_id']);
+        }
+
+        $origin = $this->origin($filters);
+        if ($origin) {
+            $distanceSql = $this->distanceSql();
+            $query->select('listings.*')->selectRaw($distanceSql.' as distance_km', [$origin['lat'], $origin['lng'], $origin['lat']]);
+            if (isset($filters['radius_km']) && $filters['radius_km'] !== '') {
+                $radius = min(100.0, max(1.0, (float) $filters['radius_km']));
+                $latDelta = $radius / 111.045;
+                $lngDelta = $radius / (111.045 * max(abs(cos(deg2rad($origin['lat']))), 0.2));
+                $query->whereBetween('listings.latitude', [$origin['lat'] - $latDelta, $origin['lat'] + $latDelta])
+                    ->whereBetween('listings.longitude', [$origin['lng'] - $lngDelta, $origin['lng'] + $lngDelta])
+                    ->whereRaw($distanceSql.' <= ?', [$origin['lat'], $origin['lng'], $origin['lat'], $radius]);
+            }
+        }
+
         if (isset($filters['min_price']) && $filters['min_price'] !== '') {
             $query->where('price', '>=', $filters['min_price']);
         }
@@ -103,6 +156,12 @@ final class ListingService
             'price_asc' => $query->reorder()->orderBy('price'),
             'price_desc' => $query->reorder()->orderByDesc('price'),
             'featured' => $query->reorder()->orderByDesc('is_featured')->latest('published_at'),
+            'distance' => $origin
+                ? $query->reorder()->orderByRaw('distance_km IS NULL')->orderBy('distance_km')
+                : $query->reorder()->latest('published_at'),
+            'relevance' => $textGroups !== []
+                ? $query->reorder()->orderByRaw($this->relevanceSql($textGroups)['sql'].' desc', $this->relevanceSql($textGroups)['bindings'])->latest('published_at')
+                : $query->reorder()->latest('published_at'),
             default => $query->reorder()->latest('published_at'),
         };
 
@@ -113,7 +172,7 @@ final class ListingService
                 'user_id' => (int) $filters['user_id'],
                 'query' => trim((string) $filters['q']),
                 'filters' => collect($filters)->only([
-                    'category_id', 'city_id', 'min_price', 'max_price', 'condition', 'sort',
+                    'category_id', 'city_id', 'area_id', 'min_price', 'max_price', 'condition', 'sort', 'radius_km',
                 ])->all(),
                 'results_count' => $page->total(),
             ]);
@@ -140,17 +199,22 @@ final class ListingService
      * @param  array<string, mixed>  $data
      * @param  array<int, UploadedFile>  $images
      */
-    public function create(User $user, array $data, array $images = [], ?int $paymentId = null): Listing
+    public function create(User $user, array $data, array $images = [], ?int $paymentId = null, ?UploadedFile $video = null): Listing
     {
-        return DB::transaction(function () use ($user, $data, $images, $paymentId): Listing {
+        app(FraudCheckService::class)->assertClean((string) $data['title'], (string) $data['description']);
+        $flags = app(FraudCheckService::class)->softFlags($user, (string) $data['title']);
+
+        $listing = DB::transaction(function () use ($user, $data, $images, $paymentId, $video, $flags): Listing {
             $quota = app(ListingQuotaService::class);
             $slot = $quota->consumeCreditOrFree($user, $paymentId);
 
+            $data = $this->applyPlace($data);
             $category = Category::query()->find($data['category_id']);
             $listing = Listing::query()->create([
                 'user_id' => $user->id,
                 'category_id' => $data['category_id'],
                 'city_id' => $data['city_id'] ?? null,
+                'area_id' => $data['area_id'] ?? null,
                 'title' => $data['title'],
                 'description' => $data['description'],
                 'price' => $data['price'],
@@ -160,19 +224,37 @@ final class ListingService
                 'attributes' => isset($data['attributes']) && is_array($data['attributes'])
                     ? $this->knownAttributes($category, $data['attributes'])
                     : null,
-                'status' => $data['status'] ?? 'active',
+                'status' => ($data['status'] ?? null) === 'draft' ? 'draft' : 'pending',
+                'moderation_note' => $flags === [] ? null : 'Fraud check: '.implode(', ', $flags),
                 'location_label' => $data['location_label'] ?? null,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
-                'published_at' => now(),
+                'video_path' => $video instanceof UploadedFile ? $video->store('listings/videos', 'public') : null,
+                'published_at' => null,
                 'expires_at' => now()->addDays((int) config('services.tantan.ad_expiry_days', 30)),
             ]);
+
+            foreach ($flags as $code) {
+                FraudFlag::query()->create([
+                    'user_id' => $user->id,
+                    'listing_id' => $listing->id,
+                    'code' => $code,
+                ]);
+            }
 
             $this->storeImages($listing, $images);
             $quota->attachPaymentToListing($listing, $slot['payment']);
 
-            return $listing->load(['category', 'city.state', 'images', 'user']);
+            return $listing->load(['category', 'city.state', 'area', 'images', 'user']);
         });
+
+        try {
+            app(SavedSearchAlertService::class)->notifyMatches($listing);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $listing;
     }
 
     /**
@@ -181,9 +263,20 @@ final class ListingService
      */
     public function update(Listing $listing, array $data, array $images = []): Listing
     {
-        return DB::transaction(function () use ($listing, $data, $images): Listing {
-            if (isset($data['price']) && (float) $data['price'] < (float) $listing->price) {
+        app(FraudCheckService::class)->assertClean(
+            (string) ($data['title'] ?? $listing->title),
+            (string) ($data['description'] ?? $listing->description),
+        );
+
+        $droppedFrom = null;
+        $droppedTo = null;
+
+        $listing = DB::transaction(function () use ($listing, $data, $images, &$droppedFrom, &$droppedTo): Listing {
+            $previous = (float) $listing->price;
+            if (isset($data['price']) && (float) $data['price'] < $previous) {
                 $listing->previous_price = $listing->price;
+                $droppedFrom = $previous;
+                $droppedTo = (float) $data['price'];
             }
 
             if (array_key_exists('is_negotiable', $data)) {
@@ -195,9 +288,15 @@ final class ListingService
                 $data['attributes'] = $this->knownAttributes($category, $data['attributes']);
             }
 
+            $placeKeys = ['area_id', 'city_id', 'latitude', 'longitude', 'location_label'];
+            if (array_intersect($placeKeys, array_keys($data)) !== []) {
+                $data = array_merge($data, $this->applyPlace(array_merge($listing->only($placeKeys), $data)));
+            }
+
             $listing->fill(collect($data)->only([
                 'category_id',
                 'city_id',
+                'area_id',
                 'title',
                 'description',
                 'price',
@@ -220,8 +319,18 @@ final class ListingService
                 $this->storeImages($listing, $images);
             }
 
-            return $listing->fresh(['category', 'city.state', 'images', 'user']);
+            return $listing->fresh(['category', 'city.state', 'area', 'images', 'user']);
         });
+
+        if ($droppedFrom !== null && $droppedTo !== null && $listing->status === 'active') {
+            try {
+                app(SavedSearchAlertService::class)->notifyPriceDrop($listing, $droppedFrom, $droppedTo);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $listing;
     }
 
     public function markSold(Listing $listing): Listing
@@ -322,7 +431,7 @@ final class ListingService
                 continue;
             }
 
-            $path = $file->store('listings/'.$listing->id, 'public');
+            $path = app(ImageCompressor::class)->store($file, 'listings/'.$listing->id);
 
             ListingImage::query()->create([
                 'listing_id' => $listing->id,
@@ -378,5 +487,99 @@ final class ListingService
             'service' => ServiceAttributes::onlyKnown($category, $attributes),
             default => ProductAttributes::onlyKnown($category, $attributes),
         };
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return addcslashes($value, '%_\\');
+    }
+
+    private function jsonText(string $key): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "json_extract(attributes, '$.{$key}')"
+            : "JSON_UNQUOTE(JSON_EXTRACT(attributes, '$.{$key}'))";
+    }
+
+    /**
+     * @param  list<list<string>>  $groups
+     * @return array{sql: string, bindings: list<string>}
+     */
+    private function relevanceSql(array $groups): array
+    {
+        $parts = [];
+        $bindings = [];
+        foreach ($groups as $forms) {
+            $form = $forms[array_key_last($forms)] ?? $forms[0];
+            $like = '%'.$this->escapeLike($form).'%';
+            $parts[] = 'CASE WHEN title LIKE ? THEN 8 ELSE 0 END';
+            $parts[] = 'CASE WHEN description LIKE ? THEN 2 ELSE 0 END';
+            $bindings[] = $like;
+            $bindings[] = $like;
+        }
+
+        return [
+            'sql' => '('.implode(' + ', $parts).')',
+            'bindings' => $bindings,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{lat: float, lng: float}|null
+     */
+    private function origin(array $filters): ?array
+    {
+        if (! isset($filters['lat'], $filters['lng']) || $filters['lat'] === '' || $filters['lng'] === '') {
+            return null;
+        }
+        if (! is_numeric($filters['lat']) || ! is_numeric($filters['lng'])) {
+            return null;
+        }
+
+        $lat = (float) $filters['lat'];
+        $lng = (float) $filters['lng'];
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+            return null;
+        }
+
+        return ['lat' => $lat, 'lng' => $lng];
+    }
+
+    private function distanceSql(): string
+    {
+        $sqlite = DB::connection()->getDriverName() === 'sqlite';
+        $clamp = $sqlite ? 'min' : 'least';
+        $floor = $sqlite ? 'max' : 'greatest';
+
+        return '(6371 * acos('.$clamp.'(1, '.$floor.'(-1, cos(radians(?)) * cos(radians(listings.latitude)) * cos(radians(listings.longitude) - radians(?)) + sin(radians(?)) * sin(radians(listings.latitude))))))';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyPlace(array $data): array
+    {
+        $area = ! empty($data['area_id']) ? Area::query()->find($data['area_id']) : null;
+        if ($area) {
+            $data['city_id'] = $data['city_id'] ?? $area->city_id;
+            $data['latitude'] = $data['latitude'] ?? $area->latitude;
+            $data['longitude'] = $data['longitude'] ?? $area->longitude;
+            if (empty($data['location_label'])) {
+                $data['location_label'] = $area->name;
+            }
+        }
+
+        if ((empty($data['latitude']) || empty($data['longitude'])) && ! empty($data['city_id'])) {
+            $city = City::query()->find($data['city_id']);
+            $data['latitude'] = $data['latitude'] ?? $city?->latitude;
+            $data['longitude'] = $data['longitude'] ?? $city?->longitude;
+            if (empty($data['location_label'])) {
+                $data['location_label'] = $city?->name;
+            }
+        }
+
+        return $data;
     }
 }

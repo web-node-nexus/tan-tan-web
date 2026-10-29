@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BannerController;
 use App\Http\Controllers\Api\V1\BlockController;
 use App\Http\Controllers\Api\V1\BoostController;
+use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\ConversationController;
@@ -11,19 +12,27 @@ use App\Http\Controllers\Api\V1\FavouriteController;
 use App\Http\Controllers\Api\V1\JobApplicationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\ListingController;
+use App\Http\Controllers\Api\V1\AlertController;
+use App\Http\Controllers\Api\V1\AreaController;
 use App\Http\Controllers\Api\V1\PackageController;
+use App\Http\Controllers\Api\V1\PlaceController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\SavedSearchController;
 use App\Http\Controllers\Api\V1\ServiceBookingController;
 use App\Http\Controllers\Api\V1\SellerController;
+use App\Http\Controllers\Api\V1\TrustController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class)->name('api.v1.health');
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('api.v1.categories.index');
+    Route::get('/catalog', [CatalogController::class, 'index'])->name('api.v1.catalog.index');
     Route::get('/cities', [CityController::class, 'index'])->name('api.v1.cities.index');
+    Route::get('/areas', [AreaController::class, 'index'])->name('api.v1.areas.index');
+    Route::get('/places/suggest', [PlaceController::class, 'suggest'])->name('api.v1.places.suggest');
+    Route::get('/places/reverse', [PlaceController::class, 'reverse'])->name('api.v1.places.reverse');
     Route::get('/banners', [BannerController::class, 'index'])->name('api.v1.banners.index');
     Route::get('/packages', [PackageController::class, 'index'])->name('api.v1.packages.index');
     Route::get('/listings', [ListingController::class, 'index'])->name('api.v1.listings.index');
@@ -48,6 +57,12 @@ Route::prefix('v1')->group(function (): void {
     });
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('/me/kyc', [TrustController::class, 'showKyc'])->name('api.v1.trust.kyc.show');
+        Route::post('/me/kyc', [TrustController::class, 'storeKyc'])->name('api.v1.trust.kyc.store');
+        Route::patch('/me/business', [TrustController::class, 'updateBusiness'])->name('api.v1.trust.business');
+        Route::get('/me/alerts', [AlertController::class, 'index'])->name('api.v1.alerts.index');
+        Route::post('/me/alerts/read', [AlertController::class, 'read'])->name('api.v1.alerts.read');
+        Route::post('/me/push-token', [AlertController::class, 'pushToken'])->name('api.v1.alerts.token');
         Route::get('/me/listings', [ListingController::class, 'mine'])->name('api.v1.listings.mine');
         Route::get('/me/applications', [JobApplicationController::class, 'mine'])->name('api.v1.applications.mine');
         Route::get('/me/bookings', [ServiceBookingController::class, 'mine'])->name('api.v1.bookings.mine');
