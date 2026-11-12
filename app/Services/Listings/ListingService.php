@@ -117,6 +117,10 @@ final class ListingService
             $query->whereHas('user', fn ($builder) => $builder->where('is_verified', true));
         }
 
+        if (! empty($filters['seller_type']) && in_array($filters['seller_type'], ['personal', 'business'], true)) {
+            $query->whereHas('user', fn ($builder) => $builder->where('account_type', $filters['seller_type']));
+        }
+
         if (! empty($filters['city_id'])) {
             $query->where('city_id', (int) $filters['city_id']);
         }
